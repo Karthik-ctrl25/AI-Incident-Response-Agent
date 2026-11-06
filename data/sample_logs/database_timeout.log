@@ -1,0 +1,8 @@
+2026-11-06 10:00:01 INFO [payments-service] Application started
+2026-11-06 10:00:05 INFO [payments-service] Connecting to database
+2026-11-06 10:00:10 WARN [payments-service] Database connection pool usage: 95%
+2026-11-06 10:00:15 ERROR [payments-service] Connection timeout while acquiring database connection
+2026-11-06 10:00:16 ERROR [payments-service] Failed to execute transaction
+2026-11-06 10:00:20 WARN [payments-service] Retrying database connection
+2026-11-06 10:00:25 ERROR [payments-service] Database connection timeout after 15000ms
+2026-11-06 10:00:30 ERROR [payments-service] Request failed with HTTP 503
