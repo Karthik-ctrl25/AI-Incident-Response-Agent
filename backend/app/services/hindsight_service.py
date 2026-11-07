@@ -1,45 +1,75 @@
+import sys
+from pathlib import Path
 import os
 import json
 import logging
-
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Dict, Any, List
+
+# Ensure backend root is in sys.path
+_backend_dir = str(Path(__file__).resolve().parent.parent.parent)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
 
 from dotenv import load_dotenv
 from hindsight_client import Hindsight
 
+try:
+    from app.config import get_settings
+except ImportError:
+    from backend.app.config import get_settings
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 
+class HindsightServiceError(Exception):
+    """Custom exception raised when Hindsight operations fail."""
+    pass
+
+
 class HindsightMemoryService:
+    """Service to interact with Hindsight Cloud for incident memory retention and recall."""
 
-    def __init__(self):
-
-        self.api_key = os.getenv("HINDSIGHT_API_KEY")
-
-        self.base_url = os.getenv(
-            "HINDSIGHT_BASE_URL",
-            "https://api.hindsight.vectorize.io"
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        bank_id: Optional[str] = None
+    ):
+        settings = get_settings()
+        self.api_key = api_key or os.getenv("HINDSIGHT_API_KEY") or settings.HINDSIGHT_API_KEY
+        self.base_url = (
+            base_url
+            or os.getenv("HINDSIGHT_BASE_URL")
+            or settings.HINDSIGHT_BASE_URL
+            or "https://api.hindsight.vectorize.io"
         )
-
-        self.bank_id = os.getenv(
-            "HINDSIGHT_BANK_ID",
-            "incident-response-memory"
+        self.bank_id = (
+            bank_id
+            or os.getenv("HINDSIGHT_BANK_ID")
+            or settings.HINDSIGHT_BANK_ID
+            or "incident-response-memory"
         )
+        self._client: Optional[Hindsight] = None
 
-        if not self.api_key:
-            raise ValueError(
-                "HINDSIGHT_API_KEY is not configured"
+    @property
+    def client(self) -> Hindsight:
+        """Lazily initialize the Hindsight client."""
+        if not self.is_configured():
+            raise HindsightServiceError("HINDSIGHT_API_KEY is not configured")
+        if self._client is None:
+            self._client = Hindsight(
+                base_url=self.base_url,
+                api_key=self.api_key,
+                timeout=30.0
             )
+        return self._client
 
-        self.client = Hindsight(
-            base_url=self.base_url,
-            api_key=self.api_key,
-            timeout=30.0
-        )
+    def is_configured(self) -> bool:
+        """Check whether valid Hindsight credentials are configured."""
+        return bool(self.api_key and not self.api_key.startswith("your_"))
 
     # -----------------------------------------
     # 1. STORE VERIFIED INCIDENT
@@ -54,12 +84,10 @@ class HindsightMemoryService:
         service_name: str,
         severity: str = "unknown",
         verified: bool = False
-    ):
-
+    ) -> Dict[str, Any]:
+        """Store an engineer-verified incident in Hindsight long-term memory."""
         if not verified:
-            raise ValueError(
-                "Only verified incidents can be stored"
-            )
+            raise ValueError("Only verified incidents can be stored")
 
         if not all([
             incident_id,
@@ -68,65 +96,46 @@ class HindsightMemoryService:
             resolution,
             service_name
         ]):
-            raise ValueError(
-                "Required incident information is missing"
-            )
-
-        incident = {
-            "incident_id": incident_id,
-            "service_name": service_name,
-            "severity": severity,
-            "logs": logs,
-            "root_cause": root_cause,
-            "resolution": resolution,
-            "verified": True,
-            "verified_at": datetime.now(
-                timezone.utc
-            ).isoformat()
-        }
+            raise ValueError("Required incident information is missing")
 
         content = f"""
-        VERIFIED HISTORICAL INCIDENT
+VERIFIED HISTORICAL INCIDENT
 
-        Incident ID: {incident_id}
+Incident ID: {incident_id}
 
-        Service: {service_name}
+Service: {service_name}
 
-        Severity: {severity}
+Severity: {severity}
 
-        Original Logs:
-        {logs}
+Original Logs:
+{logs}
 
-        Verified Root Cause:
-        {root_cause}
+Verified Root Cause:
+{root_cause}
 
-        Successful Resolution:
-        {resolution}
+Successful Resolution:
+{resolution}
 
-        Verification Status: Verified
-        """
+Verification Status: Verified
+"""
 
         try:
-
             result = self.client.retain(
-    bank_id=self.bank_id,
-    content=content,
-    context=(
-        "Engineer-verified production incident "
-        "and its confirmed resolution."
-    ),
-    metadata={
-        "incident_id": str(incident_id),
-        "service_name": str(service_name),
-        "severity": str(severity),
-        "verified": "true"
-    }
-)
-
-            logger.info(
-                "Incident stored successfully: %s",
-                incident_id
+                bank_id=self.bank_id,
+                content=content,
+                context=(
+                    "Engineer-verified production incident "
+                    "and its confirmed resolution."
+                ),
+                metadata={
+                    "incident_id": str(incident_id),
+                    "service_name": str(service_name),
+                    "severity": str(severity),
+                    "verified": "true"
+                }
             )
+
+            logger.info("Incident stored successfully in Hindsight: %s", incident_id)
 
             return {
                 "success": True,
@@ -134,14 +143,11 @@ class HindsightMemoryService:
                 "message": "Incident stored successfully"
             }
 
-        except Exception:
-
-            logger.exception(
-                "Failed to store incident: %s",
-                incident_id
-            )
-
-            raise
+        except Exception as e:
+            logger.exception("Failed to store incident in Hindsight: %s", incident_id)
+            if isinstance(e, ValueError):
+                raise
+            raise HindsightServiceError(f"Hindsight storage failed: {str(e)}") from e
 
     # -----------------------------------------
     # 2. RECALL SIMILAR HISTORICAL INCIDENTS
@@ -153,38 +159,42 @@ class HindsightMemoryService:
         service_name: Optional[str] = None,
         max_tokens: int = 4096,
         budget: str = "mid"
-    ):
-
+    ) -> Dict[str, Any]:
+        """Recall historical verified incidents similar to current logs."""
         if not logs or not logs.strip():
-            raise ValueError(
-                "Incident logs cannot be empty"
-            )
+            raise ValueError("Incident logs cannot be empty")
+
+        if not self.is_configured():
+            logger.warning("Hindsight is not configured; skipping memory recall.")
+            return {
+                "success": False,
+                "count": 0,
+                "incidents": [],
+                "message": "HINDSIGHT_API_KEY is not configured"
+            }
 
         query = f"""
-        Find historical incidents relevant to the
-        following current server/application incident.
+Find historical incidents relevant to the following current server/application incident.
 
-        Service:
-        {service_name or "Unknown"}
+Service:
+{service_name or "Unknown"}
 
-        Current Incident Logs:
-        {logs}
+Current Incident Logs:
+{logs}
 
-        Prioritize incidents with similar:
+Prioritize incidents with similar:
+- Error messages
+- Exception types
+- Stack traces
+- Failed components
+- Database or network failures
+- Root causes
+- Successful resolutions
 
-        - Error messages
-        - Exception types
-        - Stack traces
-        - Failed components
-        - Database or network failures
-        - Root causes
-        - Successful resolutions
-
-        Return only genuinely relevant historical incidents.
-        """
+Return only genuinely relevant historical incidents.
+"""
 
         try:
-
             result = self.client.recall(
                 bank_id=self.bank_id,
                 query=query,
@@ -192,19 +202,15 @@ class HindsightMemoryService:
                 budget=budget
             )
 
-            incidents = []
+            incidents: List[Dict[str, Any]] = []
 
-            for memory in result.results:
-
+            for memory in getattr(result, "results", []):
                 incidents.append({
-                    "type": memory.type,
-                    "content": memory.text
+                    "type": getattr(memory, "type", "memory"),
+                    "content": getattr(memory, "text", str(memory))
                 })
 
-            logger.info(
-                "Retrieved %d historical memories",
-                len(incidents)
-            )
+            logger.info("Retrieved %d historical memories from Hindsight", len(incidents))
 
             return {
                 "success": True,
@@ -212,46 +218,33 @@ class HindsightMemoryService:
                 "incidents": incidents
             }
 
-        except Exception:
-
-            logger.exception(
-                "Hindsight recall failed"
-            )
-
-            raise
+        except Exception as e:
+            logger.exception("Hindsight recall failed")
+            raise HindsightServiceError(f"Hindsight recall failed: {str(e)}") from e
 
     # -----------------------------------------
     # 3. CLOSE CONNECTION
     # -----------------------------------------
 
     def close(self):
+        """Close active Hindsight client session."""
+        if self._client:
+            try:
+                self._client.close()
+                logger.info("Hindsight connection closed")
+            except Exception as e:
+                logger.warning("Error closing Hindsight client: %s", e)
+            finally:
+                self._client = None
 
-        if self.client:
-            self.client.close()
-            logger.info(
-                "Hindsight connection closed"
-            )
-
-
-# ---------------------------------------------
-# OPTIONAL: QUICK CONNECTION TEST
-# ---------------------------------------------
 
 if __name__ == "__main__":
-
     service = HindsightMemoryService()
-
     try:
-
         result = service.recall_similar_incidents(
             logs="Database connection timeout",
             service_name="payment-service"
         )
-
-        print(json.dumps(
-            result,
-            indent=4
-        ))
-
+        print(json.dumps(result, indent=4))
     finally:
         service.close()
