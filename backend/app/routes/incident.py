@@ -1,17 +1,36 @@
+import sys
+from pathlib import Path
 import logging
 from functools import lru_cache
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.schemas.incident import (
-    IncidentAnalyzeRequest,
-    IncidentAnalysisResponse,
-    IncidentVerifyRequest,
-    IncidentVerifyResponse,
-    IncidentDetailResponse,
-)
-from app.services.incident_service import IncidentService, IncidentNotFoundError
-from app.services.groq_service import GroqServiceError
-from app.services.hindsight_service import HindsightServiceError
+# Ensure backend root is in sys.path
+_backend_dir = str(Path(__file__).resolve().parent.parent.parent)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
+try:
+    from app.schemas.incident import (
+        IncidentAnalyzeRequest,
+        IncidentAnalysisResponse,
+        IncidentVerifyRequest,
+        IncidentVerifyResponse,
+        IncidentDetailResponse,
+    )
+    from app.services.incident_service import IncidentService, IncidentNotFoundError
+    from app.services.groq_service import GroqServiceError
+    from app.services.hindsight_service import HindsightServiceError
+except ImportError:
+    from backend.app.schemas.incident import (
+        IncidentAnalyzeRequest,
+        IncidentAnalysisResponse,
+        IncidentVerifyRequest,
+        IncidentVerifyResponse,
+        IncidentDetailResponse,
+    )
+    from backend.app.services.incident_service import IncidentService, IncidentNotFoundError
+    from backend.app.services.groq_service import GroqServiceError
+    from backend.app.services.hindsight_service import HindsightServiceError
 
 logger = logging.getLogger(__name__)
 

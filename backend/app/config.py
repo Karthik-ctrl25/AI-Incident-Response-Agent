@@ -1,8 +1,14 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import List, Union
+import json
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-import json
+
+# Determine locations of .env whether running from root, backend, or installed
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+BACKEND_ENV = BACKEND_DIR / ".env"
+ROOT_ENV = BACKEND_DIR.parent / ".env"
 
 
 class Settings(BaseSettings):
@@ -22,7 +28,7 @@ class Settings(BaseSettings):
 
     # Groq API Configuration
     GROQ_API_KEY: str = ""
-    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
 
     # Hindsight Memory Configuration
     HINDSIGHT_API_KEY: str = ""
@@ -43,7 +49,7 @@ class Settings(BaseSettings):
         return v
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(str(BACKEND_ENV), str(ROOT_ENV), ".env"),
         env_file_encoding="utf-8",
         extra="ignore"
     )
@@ -53,4 +59,3 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Get cached application settings."""
     return Settings()
-

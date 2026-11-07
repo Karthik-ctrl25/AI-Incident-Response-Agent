@@ -91,3 +91,4 @@ Automated tests mock external API calls to verify logic and failure recovery wit
 ```bash
 python -m pytest backend/tests/ -v
 ```
+

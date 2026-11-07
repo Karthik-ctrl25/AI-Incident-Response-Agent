@@ -1,11 +1,23 @@
+import sys
+from pathlib import Path
 import logging
+
+# Ensure backend root is in sys.path
+_backend_dir = str(Path(__file__).resolve().parent.parent)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 
-from app.config import get_settings
-from app.routes.incident import router as incident_router
+try:
+    from app.config import get_settings
+    from app.routes.incident import router as incident_router
+except ImportError:
+    from backend.app.config import get_settings
+    from backend.app.routes.incident import router as incident_router
 
 # Configure logging
 logging.basicConfig(

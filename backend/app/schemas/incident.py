@@ -129,3 +129,4 @@ class IncidentDetailResponse(BaseModel):
     resolution: Optional[str] = None
     created_at: str
     verified_at: Optional[str] = None
+

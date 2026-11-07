@@ -1,11 +1,23 @@
+import sys
+from pathlib import Path
 import json
 import logging
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
+# Ensure backend root is in sys.path
+_backend_dir = str(Path(__file__).resolve().parent.parent.parent)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
 from groq import Groq, APIError, APITimeoutError, RateLimitError
-from app.config import get_settings
-from app.schemas.incident import PossibleCause
+
+try:
+    from app.config import get_settings
+    from app.schemas.incident import PossibleCause
+except ImportError:
+    from backend.app.config import get_settings
+    from backend.app.schemas.incident import PossibleCause
 
 logger = logging.getLogger(__name__)
 

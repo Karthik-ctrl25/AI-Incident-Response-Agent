@@ -1,13 +1,28 @@
+import sys
+from pathlib import Path
 import pytest
 from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 
-from app.main import app
-from app.routes.incident import get_incident_service
-from app.services.incident_service import IncidentService
-from app.services.groq_service import GroqService, GroqServiceError, GroqAnalysisResult
-from app.services.hindsight_service import HindsightMemoryService, HindsightServiceError
-from app.schemas.incident import PossibleCause
+# Ensure backend root is in sys.path
+_backend_dir = str(Path(__file__).resolve().parent.parent)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
+try:
+    from app.main import app
+    from app.routes.incident import get_incident_service
+    from app.services.incident_service import IncidentService
+    from app.services.groq_service import GroqService, GroqServiceError, GroqAnalysisResult
+    from app.services.hindsight_service import HindsightMemoryService, HindsightServiceError
+    from app.schemas.incident import PossibleCause
+except ImportError:
+    from backend.app.main import app
+    from backend.app.routes.incident import get_incident_service
+    from backend.app.services.incident_service import IncidentService
+    from backend.app.services.groq_service import GroqService, GroqServiceError, GroqAnalysisResult
+    from backend.app.services.hindsight_service import HindsightMemoryService, HindsightServiceError
+    from backend.app.schemas.incident import PossibleCause
 
 
 @pytest.fixture

@@ -1,12 +1,23 @@
+import sys
+from pathlib import Path
 import os
 import json
 import logging
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 
+# Ensure backend root is in sys.path
+_backend_dir = str(Path(__file__).resolve().parent.parent.parent)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
 from dotenv import load_dotenv
 from hindsight_client import Hindsight
-from app.config import get_settings
+
+try:
+    from app.config import get_settings
+except ImportError:
+    from backend.app.config import get_settings
 
 load_dotenv()
 

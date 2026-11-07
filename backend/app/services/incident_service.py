@@ -1,21 +1,42 @@
+import sys
+from pathlib import Path
 import logging
 import re
 import uuid
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 
-from app.schemas.incident import (
-    IncidentAnalysisResponse,
-    IncidentVerifyResponse,
-    IncidentDetailResponse,
-    HistoricalMatch,
-    PossibleCause,
-)
-from app.services.groq_service import GroqService, GroqServiceError
-from app.services.hindsight_service import (
-    HindsightMemoryService,
-    HindsightServiceError,
-)
+# Ensure backend root is in sys.path
+_backend_dir = str(Path(__file__).resolve().parent.parent.parent)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
+try:
+    from app.schemas.incident import (
+        IncidentAnalysisResponse,
+        IncidentVerifyResponse,
+        IncidentDetailResponse,
+        HistoricalMatch,
+        PossibleCause,
+    )
+    from app.services.groq_service import GroqService, GroqServiceError
+    from app.services.hindsight_service import (
+        HindsightMemoryService,
+        HindsightServiceError,
+    )
+except ImportError:
+    from backend.app.schemas.incident import (
+        IncidentAnalysisResponse,
+        IncidentVerifyResponse,
+        IncidentDetailResponse,
+        HistoricalMatch,
+        PossibleCause,
+    )
+    from backend.app.services.groq_service import GroqService, GroqServiceError
+    from backend.app.services.hindsight_service import (
+        HindsightMemoryService,
+        HindsightServiceError,
+    )
 
 logger = logging.getLogger(__name__)
 
