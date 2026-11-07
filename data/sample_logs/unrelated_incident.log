@@ -1,0 +1,6 @@
+2026-11-06 14:00:01 INFO [notification-service] Notification service started
+2026-11-06 14:00:05 INFO [notification-service] Connecting to SMTP server
+2026-11-06 14:00:10 ERROR [notification-service] SMTP connection refused
+2026-11-06 14:00:15 WARN [notification-service] Email delivery failed
+2026-11-06 14:00:20 ERROR [notification-service] Unable to send notification
+2026-11-06 14:00:25 WARN [notification-service] Retrying SMTP connection
