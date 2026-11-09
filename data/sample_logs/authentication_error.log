@@ -1,0 +1,6 @@
+2026-11-06 13:00:01 INFO [auth-service] Authentication request received
+2026-11-06 13:00:03 WARN [auth-service] Invalid credentials provided
+2026-11-06 13:00:05 ERROR [auth-service] Token validation failed
+2026-11-06 13:00:06 WARN [auth-service] Unauthorized request rejected
+2026-11-06 13:00:10 ERROR [auth-service] HTTP 401 returned to client
+2026-11-06 13:00:15 WARN [auth-service] Repeated authentication failures detected
