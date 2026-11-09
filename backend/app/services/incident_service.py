@@ -63,8 +63,11 @@ class IncidentService:
         # NOTE: In-memory data is reset if the server restarts.
         self._store: Dict[str, Dict[str, Any]] = {}
 
-    def _parse_historical_memories(self, memories: List[Dict[str, Any]]) -> tuple[str, List[HistoricalMatch]]:
-        """Parse raw memories from Hindsight into prompt text and HistoricalMatch objects."""
+    def _parse_historical_memories(
+        self, memories: List[Dict[str, Any]]
+    ) -> tuple[str, List[HistoricalMatch]]:
+        """Extract incident details from Hindsight's natural-language memories."""
+
         if not memories:
             return "", []
 
@@ -72,31 +75,70 @@ class IncidentService:
         historical_matches: List[HistoricalMatch] = []
 
         for idx, mem in enumerate(memories, start=1):
-            content = mem.get("content", "")
-            prompt_lines.append(f"Incident Memory #{idx}:\n{content.strip()}\n")
+            content = str(mem.get("content") or "").strip()
+            if not content:
+                continue
+            prompt_lines.append(
+                f"Incident Memory #{idx}:\n{content}\n"
+            )
+            # Extract incident ID
+            id_match = re.search(
+                r"\bINC-[A-Z0-9]+\b",
+                content,
+                re.IGNORECASE
+            )
+            incident_id = id_match.group(0) if id_match else None
+            # Extract service name
+            service_match = re.search(
+                r"\bWhere:\s*([A-Za-z0-9_-]+)",
+                content,
+                re.IGNORECASE
+            )
+            if not service_match:
+                service_match = re.search(
+                    r"\b([A-Za-z0-9_-]+)\s+experienced\s+"
+                    r"(?:a\s+)?(?:high|medium|low)-severity incident",
+                    content,
+                    re.IGNORECASE
+                )
 
-            # Extract fields if formatted using the standard incident template
-            inc_id_match = re.search(r"Incident ID:\s*([^\n\r]+)", content)
-            service_match = re.search(r"Service:\s*([^\n\r]+)", content)
-            root_cause_match = re.search(r"Verified Root Cause:\s*([\s\S]*?)(?=Successful Resolution:|$)", content)
-            resolution_match = re.search(r"Successful Resolution:\s*([\s\S]*?)(?=Verification Status:|$)", content)
-
-            root_cause = root_cause_match.group(1).strip() if root_cause_match else "Historical verified cause"
-            resolution = resolution_match.group(1).strip() if resolution_match else "Historical verified resolution"
-
+            service = service_match.group(1) if service_match else None
+            # Extract root cause
+            root_match = re.search(
+                r"\bcaused by\s+(.+?)(?=[.;]|\s*\||$)",
+                content,
+                re.IGNORECASE
+            )
+            root_cause = (
+                root_match.group(1).strip()
+                if root_match else "Not available in retrieved memory"
+            )
+            # Extract successful resolution
+            resolution_match = re.search(
+                r"\bresolved by\s+(.+?)(?=\s*\|\s*(?:When|Where|Resolution for):|$)",
+                content,
+                re.IGNORECASE
+            )
+            resolution = (
+                resolution_match.group(1).strip()
+                if resolution_match else "Not available in retrieved memory"
+            )
+            # Remove trailing date information from resolution
+            resolution = re.sub(
+                r"\s+on\s+\d{4}-\d{2}-\d{2}.*$",
+                "",
+                resolution
+            ).strip()
             historical_matches.append(
                 HistoricalMatch(
-                    incident_id=inc_id_match.group(1).strip() if inc_id_match else f"HIST-{idx}",
-                    service=service_match.group(1).strip() if service_match else None,
+                    incident_id=incident_id,
+                    service=service,
                     root_cause=root_cause,
                     resolution=resolution,
-                    similarity_context=content[:250].strip()
+                    similarity_context=content[:250]
                 )
             )
-
-        historical_prompt = "\n".join(prompt_lines)
-        return historical_prompt, historical_matches
-
+        return "\n".join(prompt_lines), historical_matches
     def analyze_incident(self, logs: str, service: str) -> IncidentAnalysisResponse:
         """
         Analyze incident logs:
