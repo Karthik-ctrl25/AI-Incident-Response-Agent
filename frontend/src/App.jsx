@@ -57,7 +57,7 @@ export default function App() {
     return {
       id: data.incident_id,
       incident_id: data.incident_id,
-      service: data.service || "unknown-service",
+      service: data.service || "payment-service",
 
       summary:
         data.summary ||
@@ -100,7 +100,7 @@ export default function App() {
   };
 
   // Analyze submitted logs through FastAPI.
-  const analyse = async (inputLogs, service = "unknown-service") => {
+  const analyse = async (inputLogs, service = "payment-service") => {
     if (!inputLogs || !inputLogs.trim()) {
       setAnalysisError("Please enter incident logs first.");
       return;

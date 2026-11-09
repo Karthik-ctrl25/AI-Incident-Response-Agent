@@ -1,7 +1,7 @@
 
 const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL ||
-  "https://three-facts-juggle.loca.lt"
+  "http://localhost:8000"
 ).replace(/\/+$/, "");
 
 // Common API request handler
@@ -65,7 +65,7 @@ export async function checkBackendHealth() {
 // 2. Analyse incident logs
 export async function analyzeIncident(
   logs,
-  service = "unknown-service"
+  service = "payment-service"
 ) {
   if (!logs || !logs.trim()) {
     throw new Error("Please enter server logs before submitting.");
@@ -79,7 +79,7 @@ export async function analyzeIncident(
     method: "POST",
     body: JSON.stringify({
       logs: logs.trim(),
-      service: service.trim() || "unknown-service",
+      service: service.trim() || "payment-service",
     }),
   });
 }
