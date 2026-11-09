@@ -1,0 +1,7 @@
+2026-11-06 11:00:01 INFO [analytics-service] Service started
+2026-11-06 11:02:10 WARN [analytics-service] CPU utilization reached 88%
+2026-11-06 11:03:15 WARN [analytics-service] Memory utilization reached 91%
+2026-11-06 11:04:20 ERROR [analytics-service] Memory threshold exceeded
+2026-11-06 11:04:25 WARN [analytics-service] Garbage collection taking longer than expected
+2026-11-06 11:05:00 ERROR [analytics-service] Request processing latency exceeded 5000ms
+2026-11-06 11:05:10 WARN [analytics-service] Multiple requests queued

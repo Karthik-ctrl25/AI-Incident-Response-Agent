@@ -1,0 +1,7 @@
+2026-11-06 12:00:01 INFO [deployment-service] Starting deployment version v2.4.1
+2026-11-06 12:00:05 INFO [deployment-service] Pulling application image
+2026-11-06 12:00:10 INFO [deployment-service] Image downloaded successfully
+2026-11-06 12:00:15 ERROR [deployment-service] Container failed health check
+2026-11-06 12:00:20 ERROR [deployment-service] Application startup probe failed
+2026-11-06 12:00:25 WARN [deployment-service] Restarting container
+2026-11-06 12:00:40 ERROR [deployment-service] Deployment marked as FAILED
