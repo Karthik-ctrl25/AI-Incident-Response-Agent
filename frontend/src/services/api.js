@@ -1,6 +1,8 @@
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://three-facts-juggle.loca.lt"
+).replace(/\/+$/, "");
 
 // Common API request handler
 async function apiRequest(endpoint, options = {}) {
@@ -11,22 +13,32 @@ async function apiRequest(endpoint, options = {}) {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        "bypass-tunnel-reminder": "true",
         ...options.headers,
       },
     });
   } catch (error) {
     throw new Error(
-      "Cannot connect to the backend. Please check whether FastAPI is running at " +
-      API_BASE_URL
+      `Cannot connect to the backend at ${API_BASE_URL}. Check the backend and tunnel.`
     );
   }
+
+  const responseText = await response.text();
 
   let data;
 
   try {
-    data = await response.json();
+    data = responseText ? JSON.parse(responseText) : {};
   } catch {
-    throw new Error("The backend returned an invalid response.");
+    if (response.status === 511) {
+      throw new Error(
+        "LocalTunnel verification blocked the API request. Check the tunnel URL and bypass header."
+      );
+    }
+
+    throw new Error(
+      `Backend returned a non-JSON response (HTTP ${response.status}).`
+    );
   }
 
   if (!response.ok) {
@@ -45,13 +57,16 @@ async function apiRequest(endpoint, options = {}) {
   return data;
 }
 
-// 1. Check backend connection
+// 1. Check backend health
 export async function checkBackendHealth() {
   return apiRequest("/");
 }
 
 // 2. Analyse incident logs
-export async function analyzeIncident(logs, service = "unknown-service") {
+export async function analyzeIncident(
+  logs,
+  service = "unknown-service"
+) {
   if (!logs || !logs.trim()) {
     throw new Error("Please enter server logs before submitting.");
   }
@@ -69,7 +84,7 @@ export async function analyzeIncident(logs, service = "unknown-service") {
   });
 }
 
-// 3. Submit verified incident resolution
+// 3. Verify incident and store resolution
 export async function verifyIncident(
   incidentId,
   actualRootCause,
@@ -100,7 +115,7 @@ export async function verifyIncident(
   );
 }
 
-// 4. Retrieve complete incident details
+// 4. Retrieve incident details
 export async function getIncidentDetails(incidentId) {
   if (!incidentId) {
     throw new Error("Incident ID is missing.");

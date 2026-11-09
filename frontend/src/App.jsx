@@ -14,6 +14,7 @@ import Settings from "./pages/Settings";
 import {
   analyzeIncident,
   verifyIncident,
+  getIncidentDetails,
 } from "./services/api";
 
 import "./App.css";
@@ -30,6 +31,9 @@ export default function App() {
   const [isSaving, setIsSaving] = useState(false);
   const [verificationError, setVerificationError] = useState("");
 
+  const [isFetchingIncident, setIsFetchingIncident] = useState(false);
+  const [incidentFetchError, setIncidentFetchError] = useState("");
+
   const navigate = (nextPage, filter = "All") => {
     setPage(nextPage);
 
@@ -38,9 +42,10 @@ export default function App() {
     }
   };
 
-  // Convert the backend response into the format used by the UI.
-  const normalizeIncident = (data, submittedLogs) => {
+  // Normalize the backend response for the frontend.
+  const normalizeIncident = (data, submittedLogs = "") => {
     const severity = String(data.severity || "UNKNOWN");
+
     const formattedSeverity =
       severity.charAt(0).toUpperCase() +
       severity.slice(1).toLowerCase();
@@ -53,9 +58,11 @@ export default function App() {
       id: data.incident_id,
       incident_id: data.incident_id,
       service: data.service || "unknown-service",
+
       summary:
         data.summary ||
         `Incident analysis completed for ${data.service || "the submitted service"}.`,
+
       severity: formattedSeverity,
       status: data.verified ? "Resolved" : "Open",
 
@@ -82,6 +89,7 @@ export default function App() {
       verified_resolution: data.resolution || "",
 
       logs: submittedLogs,
+
       date: data.created_at
         ? new Date(data.created_at).toLocaleString()
         : new Date().toLocaleString(),
@@ -91,7 +99,7 @@ export default function App() {
     };
   };
 
-  // Send logs to the real FastAPI backend.
+  // Analyze submitted logs through FastAPI.
   const analyse = async (inputLogs, service = "unknown-service") => {
     if (!inputLogs || !inputLogs.trim()) {
       setAnalysisError("Please enter incident logs first.");
@@ -121,7 +129,7 @@ export default function App() {
     }
   };
 
-  // Send the confirmed root cause and resolution to FastAPI.
+  // Verify an incident and save its resolution to Hindsight.
   const saveResolution = async (rootCause, resolution) => {
     if (!incident) return;
 
@@ -130,7 +138,7 @@ export default function App() {
 
     try {
       const response = await verifyIncident(
-        incident.id,
+        incident.incident_id || incident.id,
         rootCause,
         resolution
       );
@@ -161,15 +169,18 @@ export default function App() {
       setMemory((previous) => [
         {
           id: `MEM-${Date.now()}`,
-          incidentId: incident.id,
+          incidentId: incident.incident_id || incident.id,
+          summary: incident.summary,
+          severity: incident.severity,
+          service: incident.service,
           rootCause,
           resolution,
-          date: response.verified_at
+          created: response.verified_at
             ? new Date(response.verified_at).toLocaleString()
             : new Date().toLocaleString(),
         },
         ...previous.filter(
-          (item) => item.incidentId !== incident.id
+          (item) => item.incidentId !== (incident.incident_id || incident.id)
         ),
       ]);
 
@@ -183,9 +194,43 @@ export default function App() {
     }
   };
 
-  const viewIncident = (item) => {
-    setIncident(item);
-    setPage("Analysis Result");
+  // Retrieve the actual incident from FastAPI when View incident is clicked.
+  const viewIncident = async (item) => {
+    const incidentId = item.incidentId || item.incident_id;
+
+    if (!incidentId) {
+      setIncidentFetchError(
+        "Original incident ID is missing from this memory record."
+      );
+      return;
+    }
+
+    setIsFetchingIncident(true);
+    setIncidentFetchError("");
+
+    try {
+      const response = await getIncidentDetails(incidentId);
+
+      const result = normalizeIncident(
+        response,
+        item.logs || ""
+      );
+
+      setIncident(result);
+
+      setHistory((previous) => [
+        result,
+        ...previous.filter((existing) => existing.id !== result.id),
+      ]);
+
+      setPage("Analysis Result");
+    } catch (error) {
+      setIncidentFetchError(
+        error.message || "Unable to retrieve incident details."
+      );
+    } finally {
+      setIsFetchingIncident(false);
+    }
   };
 
   const renderPage = () => {
@@ -224,7 +269,14 @@ export default function App() {
         );
 
       case "AI Memory":
-        return <AIMemory memory={memory} />;
+        return (
+          <AIMemory
+            memory={memory}
+            onView={viewIncident}
+            isLoading={isFetchingIncident}
+            error={incidentFetchError}
+          />
+        );
 
       case "Verify Resolution":
         return (

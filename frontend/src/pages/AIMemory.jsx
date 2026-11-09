@@ -1,3 +1,4 @@
+
 import React from "react";
 
 import {
@@ -6,7 +7,12 @@ import {
   ArrowRight
 } from "lucide-react";
 
-export default function AIMemory({ memory = [], onView }) {
+export default function AIMemory({
+  memory = [],
+  onView,
+  isLoading = false,
+  error = ""
+}) {
   return (
     <div>
       <div className="page-heading">
@@ -20,15 +26,27 @@ export default function AIMemory({ memory = [], onView }) {
 
       <div className="memory-banner">
         <BrainCircuit size={19} />
-        Local session memory · {memory.length} verified incident(s)
+        Hindsight Memory · {memory.length} verified incident(s)
       </div>
+
+      {error && (
+        <div className="error-message">
+          {error}
+        </div>
+      )}
+
+      {isLoading && (
+        <div className="memory-banner">
+          Retrieving incident details from FastAPI...
+        </div>
+      )}
 
       {memory.length ? (
         memory.map((item) => (
           <article className="panel memory-card" key={item.id}>
             <div className="section-heading">
               <h3>
-                {item.id} · {item.severity}
+                {item.id} · {item.severity || "Verified"}
               </h3>
 
               <span className="resolved-label">
@@ -36,7 +54,7 @@ export default function AIMemory({ memory = [], onView }) {
               </span>
             </div>
 
-            <p>{item.summary}</p>
+            <p>{item.summary || item.service || "Verified incident"}</p>
 
             <p>
               <b>Root cause:</b> {item.rootCause}
@@ -49,14 +67,15 @@ export default function AIMemory({ memory = [], onView }) {
             <div className="memory-meta">
               <span>
                 <Calendar size={13} />
-                {item.created}
+                {item.created || item.date || ""}
               </span>
 
               <button
                 className="secondary-action"
                 onClick={() => onView(item)}
+                disabled={isLoading || !onView || !item.incidentId}
               >
-                View incident
+                {isLoading ? "Loading..." : "View incident"}
                 <ArrowRight size={14} />
               </button>
             </div>
