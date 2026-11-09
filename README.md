@@ -2,15 +2,21 @@
 
 An AI-powered incident response system that analyses server and application logs, identifies possible root causes, retrieves similar historical incidents, and recommends investigation steps using AI and long-term memory.
 
+<p align="center">
+  <strong>Analyze Logs | Diagnose Causes | Recall Past Incidents | Investigate Faster</strong>
+</p>
+
+---
+
 ## Overview
 
 When a server or application fails, engineers often spend valuable time examining logs, identifying the source of the problem, and searching for previous incidents.
 
-The AI Incident Response Agent helps simplify this investigation process by combining **Groq-powered log analysis** with **Hindsight memory**.
+The **AI Incident Response Agent** simplifies this investigation process by combining **Groq-powered log analysis** with **Hindsight long-term memory**.
 
-The system analyses submitted logs, presents possible causes and supporting evidence, retrieves relevant historical incidents, and recommends checks for engineers.
+The system analyses submitted logs, presents possible causes and supporting evidence, retrieves relevant historical incidents, and recommends investigation steps.
 
-Its key capability is learning from previously verified incidents so that past solutions can assist with future investigations.
+Its key capability is learning from previously verified incidents so that past solutions can assist engineers during future investigations.
 
 ## Key Features
 
@@ -31,51 +37,43 @@ Its key capability is learning from previously verified incidents so that past s
 | Backend | Python |
 | API Framework | FastAPI |
 | AI Model API | Groq |
-| Long-Term Memory | Hindsight |
+| Long-Term Memory | Hindsight Cloud |
 | Version Control | Git and GitHub |
 
 ## System Workflow
 
 1. **Log Submission:** An engineer submits server or application logs through the frontend.
-2. **AI Analysis:** The FastAPI backend sends the logs for analysis using Groq.
+2. **AI Analysis:** The FastAPI backend processes the logs using Groq.
 3. **Historical Retrieval:** Hindsight searches for similar historical incidents.
 4. **Investigation Results:** The application displays possible root causes, log evidence, historical matches, and recommended checks.
 5. **Engineer Verification:** The engineer confirms the actual root cause and resolution.
-6. **Memory Retention:** Only verified incidents with their confirmed resolutions are stored in Hindsight.
+6. **Memory Retention:** Only verified incidents with confirmed resolutions are stored in Hindsight.
 7. **Future Recall:** When similar logs are submitted again, the system can retrieve previously verified incidents to support investigation.
 
 ## Architecture
 
-```text
-              Engineer
-                  |
-                  v
-          React + Vite Frontend
-                  |
-                  v
-           Python + FastAPI
-                  |
-          +-------+-------+
-          |               |
-          v               v
-      Groq API       Hindsight Cloud
-          |               |
-          v               v
-     Log Analysis    Historical Recall
-          |               |
-          +-------+-------+
-                  |
-                  v
-       Analysis and Recommendations
-                  |
-                  v
-          Engineer Verification
-                  |
-                  v
-        Verified Incident Storage
-                  |
-                  v
-          Future Incident Recall
+```mermaid
+flowchart TD
+    A[Engineer submits server/application logs]
+    B[React + Vite Frontend]
+    C[Python + FastAPI Backend]
+    D[Groq API - Log Analysis]
+    E[Hindsight Cloud - Historical Incident Recall]
+    F[Possible Root Causes + Evidence + Recommendations]
+    G[Engineer verifies actual Root Cause and Resolution]
+    H[Store Verified Incident in Hindsight]
+    I[Future Similar Incident]
+
+    A --> B
+    B --> C
+    C --> D
+    C --> E
+    D --> F
+    E --> F
+    F --> G
+    G -->|Verified| H
+    H --> I
+    I --> E
 ```
 
 ## Project Structure
@@ -98,15 +96,19 @@ AI-Incident-Response-Agent/
 │
 ├── docs/
 │
+├── tests/
+│
 ├── .gitignore
 └── README.md
 ```
 
-*Note: This is the intended high-level structure. Refer to the actual repository for the complete file layout.*
+*This is a simplified overview. Refer to the repository for the complete project structure.*
 
 ## Getting Started
 
 ### Prerequisites
+
+Make sure you have the following installed:
 
 - Python 3.10 or a compatible version
 - Node.js and npm
@@ -117,14 +119,21 @@ AI-Incident-Response-Agent/
 
 ```bash
 git clone https://github.com/nadeem6456/AI-Incident-Response-Agent.git
+
 cd AI-Incident-Response-Agent
 ```
 
 ### 2. Set Up the Backend
 
+Navigate to the backend directory:
+
 ```bash
 cd backend
+```
 
+Create a Python virtual environment:
+
+```bash
 python -m venv venv
 ```
 
@@ -136,49 +145,53 @@ Activate the virtual environment.
 venv\Scripts\activate
 ```
 
-Install dependencies:
+Install the required dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Configure the environment variables using the provided `.env.example` file.
+Configure your environment variables using the provided `.env.example` file.
 
-Add the required Groq and Hindsight credentials using the variable names specified by the backend configuration.
+Add the required Groq and Hindsight credentials using the exact variable names specified in the backend configuration.
 
-Start the backend:
+Start the FastAPI server:
 
 ```bash
 python -m uvicorn app.main:app --reload --port 8000
 ```
 
-Backend API:
+Backend URL:
 
-```text
-http://localhost:8000
-```
+`http://localhost:8000`
 
 API documentation:
 
-```text
-http://localhost:8000/docs
-```
+`http://localhost:8000/docs`
 
 ### 3. Set Up the Frontend
 
-Open another terminal:
+Open another terminal and navigate to the frontend directory:
 
 ```bash
 cd frontend
+```
+
+Install dependencies:
+
+```bash
 npm install
+```
+
+Start the development server:
+
+```bash
 npm run dev
 ```
 
-Open the local frontend URL displayed by Vite, usually:
+Open the local frontend URL displayed by Vite. Usually:
 
-```text
-http://localhost:5173
-```
+`http://localhost:5173`
 
 ## Example Use Case
 
@@ -191,9 +204,11 @@ The submitted logs indicate:
 - Failed database transactions.
 - HTTP 503 responses.
 
-The agent analyses these logs, identifies database connection pool exhaustion as a possible cause, and retrieves similar historical incidents from Hindsight when available.
+The agent analyses these logs and identifies database connection pool exhaustion as a possible cause.
 
-An engineer investigates the issue, confirms the actual cause, and records the verified resolution.
+Hindsight retrieves similar historical incidents when available, helping the engineer investigate using previously recorded knowledge.
+
+The engineer then investigates the issue, confirms the actual root cause, and records the verified resolution.
 
 The verified incident becomes useful historical knowledge when a similar issue occurs again.
 
@@ -206,10 +221,11 @@ The system is designed to assist engineers, not replace their judgment.
 - Only verified incidents are retained as historical knowledge.
 - The system recommends investigation steps but does not automatically execute server repairs.
 
-## Demo
+## Demo Video
 
-**YouTube Demonstration:**  
-[Watch the project demo](https://youtu.be/fuEvYDhZams)
+Watch the project demonstration:
+
+[▶ Watch the AI Incident Response Agent Demo]([https://youtu.be/fuEvYDhZams](https://youtu.be/fuEvYDhzams?si=KuOjU7A3AYNx6_BN))
 
 ## Future Improvements
 
@@ -223,6 +239,15 @@ The system is designed to assist engineers, not replace their judgment.
 
 Built by a team of four engineering students.
 
+| Team Member | GitHub Profile | Contribution |
+|---|---|---|
+| Karthik Raikar | [@Karthik-ctrl25](https://github.com/Karthik-ctrl25) | Hindsight integration and project integration |
+| Kavya K | [@kavya-kalai](https://github.com/kavya-kalai) | Backend development |
+| Chinmai Rampure | [@Chinmairampure28](https://github.com/Chinmairampure28) | Frontend development |
+| Nadeem Nadaf | [@nadeem6456](https://github.com/nadeem6456) | Testing and QA |
+
 ## License
 
-This project was developed as an educational engineering project. Add an appropriate open-source license if you intend to distribute it under specific reuse terms.
+This project was developed as an educational engineering project.
+
+Add an appropriate open-source license if you intend to distribute it under specific reuse terms.
