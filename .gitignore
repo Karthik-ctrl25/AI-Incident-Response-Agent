@@ -1,0 +1,6 @@
+
+# Python virtual environment and generated files
+.venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
