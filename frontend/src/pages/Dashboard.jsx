@@ -1,5 +1,6 @@
 
 import React, { useState } from "react";
+
 import {
   Database,
   AlertTriangle,
@@ -19,6 +20,8 @@ export default function Dashboard({
   memory = [],
   onNavigate,
   onAnalyseLogs,
+  isAnalyzing = false,
+  analysisError = "",
 }) {
   const [chatOpen, setChatOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -59,18 +62,16 @@ export default function Dashboard({
           #3c966b ${highPercent + mediumPercent}% 100%
         )`;
 
-  // Submit chat message
+  // Submit logs to the backend through App.jsx
   const sendMessage = () => {
-    if (!message.trim()) return;
+    if (!message.trim() || isAnalyzing) return;
 
-    if (typeof onAnalyseLogs === "function") {
-      const submittedMessage = message.trim();
+    const submittedMessage = message.trim();
 
-      setMessage("");
-      setChatOpen(false);
+    setMessage("");
 
-      onAnalyseLogs(submittedMessage);
-    }
+    // Keep chat open while the backend processes the logs.
+    onAnalyseLogs?.(submittedMessage);
   };
 
   const recentActivity = history.slice(0, 5);
@@ -245,9 +246,7 @@ export default function Dashboard({
                   type="button"
                   className="activity-item dashboard-activity-button"
                   key={item.id}
-                  onClick={() =>
-                    onNavigate?.("Incident History", "All")
-                  }
+                  onClick={() => onNavigate?.("Incident History", "All")}
                 >
                   <div className="activity-symbol">
                     <BrainCircuit size={16} />
@@ -298,7 +297,9 @@ export default function Dashboard({
                   <h3>IncidentAI Assistant</h3>
                   <span>
                     <i />
-                    Available to help
+                    {isAnalyzing
+                      ? "Analysing incident..."
+                      : "Available to help"}
                   </span>
                 </div>
               </div>
@@ -350,9 +351,28 @@ export default function Dashboard({
                 </span>
               </div>
 
+              {/* LOADING MESSAGE */}
+              {isAnalyzing && (
+                <div className="chat-hint">
+                  <Sparkles size={15} />
+                  <span>
+                    IncidentAI is analysing your logs.
+                    Please wait...
+                  </span>
+                </div>
+              )}
+
+              {/* BACKEND ERROR MESSAGE */}
+              {analysisError && (
+                <div className="chat-hint" role="alert">
+                  <AlertTriangle size={15} />
+                  <span>{analysisError}</span>
+                </div>
+              )}
+
             </div>
 
-            {/* ALWAYS VISIBLE CHAT INPUT AT BOTTOM */}
+            {/* CHAT INPUT */}
             <div className="incident-chat-compose">
 
               <textarea
@@ -372,6 +392,7 @@ export default function Dashboard({
                 placeholder="Type a message or paste server logs..."
                 rows={3}
                 aria-label="Message IncidentAI"
+                disabled={isAnalyzing}
               />
 
               <div className="incident-chat-compose-footer">
@@ -383,10 +404,16 @@ export default function Dashboard({
                   type="button"
                   className="chat-analyse-button"
                   onClick={sendMessage}
-                  disabled={!message.trim()}
+                  disabled={!message.trim() || isAnalyzing}
                 >
-                  <Send size={15} />
-                  Send
+                  {isAnalyzing ? (
+                    "Analysing..."
+                  ) : (
+                    <>
+                      <Send size={15} />
+                      Send
+                    </>
+                  )}
                 </button>
               </div>
 
